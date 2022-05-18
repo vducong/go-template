@@ -1,0 +1,9 @@
+# IDE
+.idea
+.vscode
+.DS_Store
+
+# Config
+.env
+configs/*.yaml
+assets/credentials/*
