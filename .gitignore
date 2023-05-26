@@ -1,0 +1,12 @@
+# IDE
+.idea
+.vscode
+.DS_Store
+
+# Config
+.env
+configs/prod.config.yaml
+
+# Credential
+assets/credentials/*
+!assets/credentials/firebase.dev.json
