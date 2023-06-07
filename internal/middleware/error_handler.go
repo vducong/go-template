@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"promotion/pkg/failure"
 	"promotion/pkg/logger"
@@ -27,7 +28,7 @@ func handleContextErr(ctx *gin.Context, log *logger.Logger, err *gin.Error) {
 
 	if appError, ok := err.Err.(*failure.BindJSONErr); ok {
 		if appError.OriginalErr != nil {
-			log.Error(appError.OriginalErr)
+			log.Warn("%d | Err: %v", appError.Code, appError.OriginalErr)
 		}
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.HTTPResponse{
 			Status: appError.Code,
@@ -38,7 +39,7 @@ func handleContextErr(ctx *gin.Context, log *logger.Logger, err *gin.Error) {
 
 	if appError, ok := err.Err.(*failure.AppErr); ok {
 		if appError.OriginalErr != nil {
-			log.Error(appError.OriginalErr)
+			log.Warn("%d | Err: %v", appError.Code, appError.OriginalErr)
 		}
 		ctx.AbortWithStatusJSON(appError.HTTPCode(), response.HTTPResponse{
 			Status: appError.Code,
@@ -47,7 +48,7 @@ func handleContextErr(ctx *gin.Context, log *logger.Logger, err *gin.Error) {
 		return
 	}
 
-	log.Error(err.Err)
+	log.Error(fmt.Errorf("Abnormal err: %v", err.Err))
 	ctx.JSON(http.StatusBadRequest, response.HTTPResponse{
 		Status: http.StatusBadRequest,
 		Data:   err.Error(),
