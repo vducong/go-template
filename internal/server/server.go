@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os/signal"
@@ -15,29 +16,33 @@ import (
 
 const cancelContextTimeout = 5 * time.Second
 
+type CreateServerDTO struct {
+	Cfg     *configs.Config
+	Log     *logger.Logger
+	Handler *gin.Engine
+}
+
 type Server struct {
 	cfg        *configs.Config
 	log        *logger.Logger
 	httpServer *http.Server
 }
 
-func New(
-	cfg *configs.Config, log *logger.Logger, engine *gin.Engine,
-) *Server {
+func New(dto *CreateServerDTO) *Server {
 	s := &Server{
-		cfg: cfg,
-		log: log,
+		cfg: dto.Cfg,
+		log: dto.Log,
 		httpServer: &http.Server{
-			Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
-			Handler: engine,
+			Addr:    fmt.Sprintf(":%d", dto.Cfg.Server.Port),
+			Handler: dto.Handler,
 		},
 	}
 
-	s.Start()
+	s.start()
 	return s
 }
 
-func (s *Server) Start() {
+func (s *Server) start() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -67,8 +72,8 @@ func (s *Server) Start() {
 func (s *Server) serve() {
 	s.log.Infof("http: starting server at %d", s.cfg.Server.Port)
 	if err := s.httpServer.ListenAndServe(); err != nil {
-		if err == http.ErrServerClosed {
-			s.log.Info("http: server shutdown complete: %v", err)
+		if errors.Is(err, http.ErrServerClosed) {
+			s.log.Infof("http: server shutdown complete: %v", err)
 		} else {
 			s.log.Errorf("http: server closed unexpect: %v", err)
 		}

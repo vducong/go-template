@@ -8,6 +8,6 @@ type Modules struct {
 
 func initModules(infra *infrastructure) *Modules {
 	return &Modules{
-		ReusableCode: reusablecode.NewModule(infra.log, infra.db.MySQL),
+		ReusableCode: reusablecode.NewModule(infra.Log, infra.db.MySQL),
 	}
 }

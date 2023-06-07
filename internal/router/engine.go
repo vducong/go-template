@@ -10,33 +10,36 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
+type CreateEngineDTO struct {
+	Cfg             *configs.Config
+	Log             *logger.Logger
+	Controllers     *controller.Controllers
+	AuthMiddlewares *middleware.AuthMiddlewares
+}
+
 type Engine struct {
 	log     *logger.Logger
 	Handler *gin.Engine
 }
 
-func NewEngine(
-	cfg *configs.Config,
-	log *logger.Logger,
-	controllers *controller.Controllers,
-	authMiddlewares *middleware.AuthMiddlewares,
-) *Engine {
-	if cfg.Server.Env == configs.ServerEnvProduction {
+func NewEngine(dto *CreateEngineDTO) *Engine {
+	if dto.Cfg.Server.Env == configs.ServerEnvProduction {
 		gin.SetMode(gin.ReleaseMode)
 	} else {
 		gin.SetMode(gin.DebugMode)
 	}
 
+	gin.ForceConsoleColor()
+
 	engine := &Engine{
-		log:     log,
+		log:     dto.Log,
 		Handler: gin.New(),
 	}
 
-	gin.ForceConsoleColor()
-	gin.DebugPrintRouteFunc = logger.DebugOutputLogger(log)
+	gin.DebugPrintRouteFunc = logger.DebugOutputLogger(dto.Log)
 
-	engine.attachMiddleware(cfg)
-	engine.registerRoutes(controllers, authMiddlewares)
+	engine.attachMiddleware(dto.Cfg)
+	engine.registerRoutes(dto.Controllers, dto.AuthMiddlewares)
 	return engine
 }
 
