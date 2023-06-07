@@ -3,7 +3,6 @@ package httpclient
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -84,21 +83,35 @@ func readResponseBody(res *http.Response) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-func ParseResponseBody[BodyDataType any](body []byte) (*BodyDataType, error) {
+func HandleHTTPResponse[BodyDataType any](res []byte, doesNeedToReadDataIfErr bool) (
+	*struct {
+		Status int          `json:"status"`
+		Data   BodyDataType `json:"data"`
+	}, error,
+) {
+	resBody, err := ParseResponseBody[BodyDataType](res)
+	if err != nil {
+		return nil, failure.ErrWithTrace(err)
+	}
+	if resBody.Status != http.StatusOK &&
+		(!doesNeedToReadDataIfErr || resBody.Status != http.StatusBadRequest) {
+		return nil, failure.ErrWithTrace(fmt.Errorf("Failed to send request: %+v", resBody))
+	}
+	return resBody, nil
+}
+
+func ParseResponseBody[BodyDataType any](res []byte) (
+	*struct {
+		Status int          `json:"status"`
+		Data   BodyDataType `json:"data"`
+	}, error,
+) {
 	parsed := struct {
 		Status int          `json:"status"`
 		Data   BodyDataType `json:"data"`
 	}{}
-	if err := json.Unmarshal(body, &parsed); err != nil {
+	if err := json.Unmarshal(res, &parsed); err != nil {
 		return nil, failure.ErrWithTrace(fmt.Errorf("Failed to unmarshal body: %w", err))
 	}
-	if parsed.Status != http.StatusOK {
-		return nil, failure.ErrWithTrace(fmt.Errorf(
-			"Got status=%d. Failed to send request: %+v", parsed.Status, parsed.Data,
-		))
-	}
-	if parsed.Status == http.StatusUnauthorized {
-		return nil, failure.ErrWithTrace(errors.New("Unauthorized request"))
-	}
-	return &parsed.Data, nil
+	return &parsed, nil
 }
