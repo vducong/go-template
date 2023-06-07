@@ -1,11 +1,11 @@
 # Step 1: Modules caching
-FROM golang:1.18.2-alpine3.16 as modules
+FROM golang:1.19.9-alpine as modules
 COPY go.mod go.sum /modules/
 WORKDIR /modules
 RUN go mod download
 
 # Step 2: Builder
-FROM golang:1.18.2-alpine3.16 as builder
+FROM golang:1.19.9-alpine as builder
 COPY --from=modules /go/pkg /go/pkg
 COPY . /app
 WORKDIR /app
@@ -24,6 +24,5 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/local/go/lib/time/zoneinfo.zip /zoneinfo.zip
 ENV ZONEINFO=/zoneinfo.zip
 
-EXPOSE 5555
-
+EXPOSE 5005
 ENTRYPOINT ["/app"]
