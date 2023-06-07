@@ -45,8 +45,9 @@ func handleRecoverErr(ctx *gin.Context, log *logger.Logger, err interface{}) {
 			zap.Any("error", err),
 			zap.String("request", string(httpRequest)),
 		)
+
 		// If the connection is dead, we can't write a status to it.
-		ctx.Error(err.(error)) // nolint: errcheck
+		_ = ctx.Error(err.(error))
 		ctx.Abort()
 		return
 	}

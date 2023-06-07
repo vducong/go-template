@@ -35,11 +35,11 @@ func (m *InternalAuthMiddleware) Handler() gin.HandlerFunc {
 			ctx.Next()
 			return
 		}
+
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, response.HTTPResponse{
 			Status: http.StatusUnauthorized,
 			Data:   errQuery.Error(),
 		})
-		return
 	}
 }
 
