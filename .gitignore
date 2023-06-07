@@ -10,3 +10,6 @@ configs/prod.config.yaml
 # Credential
 assets/credentials/*
 !assets/credentials/firebase.dev.json
+
+# Debug
+*/**/__debug_bin
