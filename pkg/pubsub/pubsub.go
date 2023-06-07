@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"promotion/configs"
+	"promotion/pkg/failure"
 	"promotion/pkg/logger"
 
 	"cloud.google.com/go/pubsub"
@@ -12,12 +13,6 @@ import (
 type PubSub struct {
 	log    *logger.Logger
 	client *pubsub.Client
-}
-
-type PubSubPublishDTO struct {
-	TopicID     string
-	Data        []byte
-	OrderingKey *string
 }
 
 func NewPubSub(cfg *configs.Config, log *logger.Logger) (*PubSub, error) {
@@ -40,10 +35,11 @@ func (p *PubSub) Publish(dto *PubSubPublishDTO) error {
 	result := topic.Publish(ctx, message)
 	id, err := result.Get(ctx)
 	if err != nil {
-		return fmt.Errorf(
-			"Failed to publish message=%s topic=%s: %w", string(dto.Data), dto.TopicID, err,
-		)
+		return failure.ErrWithTrace(fmt.Errorf(
+			"Failed to publish message=%s topic=%s: %w", dto.TopicID, string(dto.Data), err,
+		))
 	}
+
 	p.log.Infof("Published message=%s to topic=%s", id, dto.TopicID)
 	return nil
 }
