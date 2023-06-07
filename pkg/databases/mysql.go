@@ -22,7 +22,7 @@ func NewMySQLDB(cfg *configs.Config) (MySQLDB, error) {
 		getGORMConfig(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to init MySQL session: %w", err)
+		return nil, failure.ErrWithTrace(fmt.Errorf("Failed to init MySQL session: %w", err))
 	}
 
 	if err := db.Use(
@@ -33,7 +33,7 @@ func NewMySQLDB(cfg *configs.Config) (MySQLDB, error) {
 
 	instance, err := db.DB()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get MySQL instance: %w", err)
+		return nil, failure.ErrWithTrace(fmt.Errorf("Failed to get MySQL instance: %w", err))
 	}
 	setupDBInstance(instance, cfg)
 
