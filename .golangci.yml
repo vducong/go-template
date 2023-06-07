@@ -1,6 +1,4 @@
 linters-settings:
-  depguard:
-    list-type: blacklist
   dupl:
     threshold: 100
   funlen:
@@ -28,7 +26,7 @@ linters-settings:
     settings:
       mnd:
         # don't include the "operation" and "assign"
-        checks: argument,case,condition,return
+        checks: [argument, case, condition, return]
         ignored-numbers: 0,1,2,3
         ignored-functions: strings.SplitN
   govet:
@@ -97,7 +95,6 @@ linters:
 issues:
   exclude:
     - "^exported:" # revive: backwards-compat
-
   fix: true
 
 run:
