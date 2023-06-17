@@ -26,8 +26,14 @@ $ make run
 ├── assets
 │   └── credentials
 ├── cmd
-│   └── app
+│   ├── app
+│   └── cli
 ├── configs
+│   ├── config.go
+│   ├── default.go
+│   ├── load.go
+│   ├── *.config.yaml
+│   └── template.config.yaml
 ├── constants
 ├── githooks
 ├── internal
@@ -35,21 +41,32 @@ $ make run
 │   ├── controller
 │   ├── middleware
 │   ├── [any domain]
-│   │   ├── dto
-│   │   ├── model
-│   │   ├── module
-│   │   ├── repo
-│   │   └── service
+│   │   ├── constant.go
+│   │   ├── dto.go
+│   │   ├── model.go
+│   │   ├── module.go
+│   │   ├── repo.go
+│   │   └── service.go
 │   ├── router
 │   └── server
 ├── migrations
 ├── pkg
+│   ├── cache
 │   ├── databases
 │   ├── failure
+│   ├── file_util
+│   ├── http_client
 │   ├── logger
-│   └── pubsub
+│   ├── pubsub
+│   └── tracing
 ├── scripts
 │   └── bash
+├── .golangci.yml
+├── .pre-commit-config.yaml
+├── Dockerfile
+├── go.mod
+├── go.sum
+├── Makefile
 └── ...
 ```
 
@@ -59,8 +76,11 @@ Static files to go along with the repository.
 
 ### `cmd/app/main.go`
 
-Configuration and logger initialization. Then the main function "continues" in
-`internal/app/app.go`.
+Main applications for this project.
+
+### `cmd/cli/main.go`
+
+CLI application.
 
 ### `configs`
 
@@ -140,6 +160,11 @@ Scripts to perform various build, install, analysis, etc. operations.
 These scripts keep the root level Makefile small and simple.
 
 ## Tools
+
+### Conventional commit
+
+Using [pre-commit](https://pre-commit.com/), We run Git hooks on every commit to automatically point out issues in code.
+Follow the [instruction](https://pre-commit.com/#installation) to install.
 
 ### Style checks
 
