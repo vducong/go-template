@@ -1,0 +1,34 @@
+app:
+  name: gotemplate
+  version: 0.1.0
+  env: dev
+
+http:
+  port: 8080
+
+grpc:
+  port: 9091
+
+log:
+  level: DEBUG
+  mode: console
+
+tracing:
+  service_name: gotemplate
+  kind: otel
+  exporter:
+    kind: zipkin
+    endpoint: http://localhost:9411/api/v2/spans
+  provider:
+    sampler_kind: always
+    sample_rate: 1.0
+
+metric:
+  service_name: gotemplate
+  kind: otel
+  readers:
+    - exporter_kind: otel_prometheus
+      interval: 10
+    - exporter_kind: otel_grpc
+      exporter_endpoint: http://localhost:4317
+      interval: 10

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "Running pre-commit check..."
+
+# Run linter
+echo "Running golangci-lint on changes..."
+if ! golangci-lint run --new-from-rev=HEAD; then
+    echo "❌ Linting failed on changes. Please fix the errors before committing."
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed."
+exit 0

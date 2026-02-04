@@ -1,0 +1,96 @@
+# Secrets & sensitive files
+.env
+.env.*
+*.key
+*.pem
+*_rsa
+*_rsa.*
+*.p12
+*.pfx
+.aws/
+.ssh/
+credentials
+configs/config.yaml
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test
+*.test
+
+# Output
+*.out
+
+# Dependencies
+vendor/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+.svn/
+.hg/
+
+# IDE
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.project
+.classpath
+.vscode
+.settings/
+
+# Documentation
+*.md
+README*
+LICENSE*
+
+# Tests & Coverage
+test/
+tests/
+*_test.go
+coverage/
+.coverage
+htmlcov/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+.travis.yml
+azure-pipelines.yml
+Jenkinsfile
+.drone.yml
+
+# Log files
+*.log
+logs/
+
+# Bin
+bin/
+*/**/__debug_bin*
+
+# OS-specific files
+.DS_Store
+*/**/.DS_Store
+.DS_Store?
+
+# AI assistant
+.cursorrules
+.cursor/
+.aider*
+.continue/
+copilot-*
+AGENTS.md
+**/CLAUDE.md
