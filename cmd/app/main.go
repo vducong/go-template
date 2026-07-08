@@ -2,7 +2,7 @@ package main
 
 import (
 	"gotemplate/internal/app"
-	cfg "gotemplate/internal/config"
+	"gotemplate/internal/cfg"
 )
 
 func main() {

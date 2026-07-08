@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"gotemplate/internal/app"
-	cfg "gotemplate/internal/config"
+	"gotemplate/internal/cfg"
 	"os"
 )
 

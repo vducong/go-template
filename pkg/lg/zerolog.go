@@ -106,6 +106,8 @@ func applyField(e *zerolog.Event, f Field) {
 		e.Str(f.Key, f.Value.(string))
 	case int:
 		e.Int(f.Key, f.Value.(int))
+	case int64:
+		e.Int64(f.Key, f.Value.(int64))
 	case float64:
 		e.Float64(f.Key, f.Value.(float64))
 	case bool:

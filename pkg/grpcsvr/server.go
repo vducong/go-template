@@ -1,6 +1,7 @@
 package grpcsvr
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -52,6 +53,15 @@ func (s *Server) WaitForReady() {
 	<-s.ready
 }
 
-func (s *Server) Stop() {
-	s.Server.GracefulStop()
+func (s *Server) Stop(ctx context.Context) {
+	done := make(chan struct{})
+	go func() {
+		s.Server.GracefulStop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+		s.Server.Stop()
+	}
 }

@@ -1,7 +1,7 @@
 package service
 
 import (
-	cfg "gotemplate/internal/config"
+	"gotemplate/internal/cfg"
 )
 
 type Config interface {

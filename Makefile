@@ -1,4 +1,4 @@
-.PHONY: install setup-hooks build run test lint docker-build
+.PHONY: install setup-hooks build run test lint gen gen-proto docker-build docker-run
 
 APP_NAME = gotmpl
 DOCKER_IMAGE = $(APP_NAME):latest
@@ -31,6 +31,9 @@ test:
 lint:
 	@echo "Running linters..."
 	golangci-lint run
+
+gen:
+	go generate ./...
 
 gen-proto:
 	@echo "Generating Protobuf files..."

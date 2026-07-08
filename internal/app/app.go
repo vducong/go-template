@@ -3,27 +3,35 @@ package app
 import (
 	"context"
 	"fmt"
-	cfg "gotemplate/internal/config"
+	"gotemplate/internal/apperr"
+	"gotemplate/internal/cfg"
 	"gotemplate/internal/infra"
-	"gotemplate/internal/interface/grpc"
-	"gotemplate/internal/interface/grpc/service"
-	"gotemplate/internal/interface/http"
-	"gotemplate/internal/interface/http/handler"
+	"gotemplate/internal/interface/grpcif"
+	grpcsvc "gotemplate/internal/interface/grpcif/service"
+	"gotemplate/internal/interface/httpif"
+	"gotemplate/internal/interface/httpif/handler"
+	"gotemplate/internal/interface/httpif/middleware"
+	"gotemplate/internal/repository"
 	intsvc "gotemplate/internal/service"
+	"gotemplate/pkg/auth"
 	"gotemplate/pkg/grpcsvr"
 	"gotemplate/pkg/httpsvr"
 	"gotemplate/pkg/lg"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
 
 type App struct {
-	cfg        *cfg.Config
-	infra      *infra.Infrastructure
+	cfg   *cfg.Config
+	infra *infra.Infrastructure
+
+	services  *intsvc.Services
+	serveDone chan struct{}
+
 	httpServer *httpsvr.Server
 	grpcServer *grpcsvr.Server
 
@@ -35,6 +43,9 @@ func Init(configs *cfg.Config) (*App, error) {
 		cfg:   configs,
 		ready: make(chan struct{}),
 	}
+	if err := apperr.Setup(configs.App.ServiceCode, configs.App.MessageKeyPrefix); err != nil {
+		return nil, fmt.Errorf("setup apperr: %w", err)
+	}
 
 	infrastructure, err := infra.Setup(configs)
 	if err != nil {
@@ -42,20 +53,41 @@ func Init(configs *cfg.Config) (*App, error) {
 	}
 	app.infra = infrastructure
 
-	runtime.GOMAXPROCS(configs.App.MaxProcs)
-
-	internalServices, err := intsvc.Setup(configs)
+	repos := repository.Init(configs, infrastructure)
+	services, err := intsvc.Setup(configs, infrastructure, repos)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup internal services: %w", err)
+		return nil, fmt.Errorf("failed to setup services: %w", err)
 	}
+	app.services = services
 
 	if configs.HTTP.Port != "" {
-		httpHandlers := handler.Setup(&handler.Config{})
-		app.httpServer = http.New(configs, app.infra, httpHandlers)
+		jwtCfg, err := auth.JWTConfigFromAuth(
+			configs.Auth.JWTSecret,
+			configs.Auth.JWTLeeway,
+			configs.Auth.JWTIssuer,
+			configs.Auth.JWTAudience,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("setup auth: %w", err)
+		}
+
+		authenticator, err := middleware.NewAuthenticator(
+			infrastructure.Logger,
+			infrastructure.ResponseWriter,
+			jwtCfg,
+			configs.Auth.APIKeys,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("setup authenticator: %w", err)
+		}
+
+		app.httpServer = httpif.New(
+			configs, app.infra, handler.Setup(configs, infrastructure, services), authenticator,
+		)
 	}
 	if configs.GRPC.Port != "" {
-		grpcServices := service.Setup(internalServices)
-		app.grpcServer = grpc.New(&configs.GRPC, app.infra, internalServices, grpcServices)
+		grpcServices := grpcsvc.Setup(services)
+		app.grpcServer = grpcif.New(&configs.GRPC, app.infra, grpcServices)
 	}
 
 	return app, nil
@@ -67,7 +99,9 @@ func (a *App) Run() {
 
 	if a.httpServer != nil || a.grpcServer != nil {
 		errChan := make(chan error, 1)
+		a.serveDone = make(chan struct{})
 		go func() {
+			defer close(a.serveDone)
 			errChan <- a.Serve()
 		}()
 
@@ -113,9 +147,22 @@ func (a *App) Serve() error {
 	return errg.Wait()
 }
 
+func (a *App) waitForServe() {
+	if a.serveDone == nil {
+		return
+	}
+	select {
+	case <-a.serveDone:
+	case <-time.After(a.cfg.App.ShutdownTimeout):
+		a.infra.Logger.Warn("background workers did not exit before timeout")
+	}
+}
+
 func (a *App) Stop() {
+	ctx := context.Background()
+
 	if a.httpServer != nil {
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), a.cfg.HTTP.ShutdownTimeout)
+		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, a.cfg.HTTP.ShutdownTimeout)
 		defer shutdownCancel()
 		if err := a.httpServer.Stop(shutdownCtx); err != nil {
 			a.infra.Logger.Error("failed to shutdown http server", lg.Err(err))
@@ -124,12 +171,23 @@ func (a *App) Stop() {
 	}
 
 	if a.grpcServer != nil {
-		a.grpcServer.Stop()
+		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, a.cfg.App.ShutdownTimeout)
+		defer shutdownCancel()
+		a.grpcServer.Stop(shutdownCtx)
 		a.infra.Logger.Info("grpc server shutdown complete")
 	}
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), a.cfg.App.ShutdownTimeout)
+	a.waitForServe()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, a.cfg.App.ShutdownTimeout)
 	defer shutdownCancel()
+
+	if err := a.services.Stop(shutdownCtx); err != nil {
+		a.infra.Logger.Error("failed to stop services", lg.Err(err))
+	}
+	a.infra.Logger.Info("services shutdown complete")
+
+	// Flush tracing/metrics before closing instrumented clients (mongo, redis, gRPC).
 	if err := a.infra.Close(shutdownCtx); err != nil {
 		a.infra.Logger.Error("failed to close infra", lg.Err(err))
 	}

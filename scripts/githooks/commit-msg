@@ -2,6 +2,15 @@
 
 COMMIT_MSG_FILE=$1
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+COMMIT_SUBJECT=$(printf "%s\n" "$COMMIT_MSG" | sed -n '1p')
+
+# Ignore Git-generated subjects: merge, revert, fixup/squash (autosquash).
+case "$COMMIT_SUBJECT" in
+    Merge\ *|Revert\ \"*|Revert\ \'*|fixup!*|squash!*)
+        echo "✅ Auto-generated commit message is ignored."
+        exit 0
+        ;;
+esac
 
 # Regex for Conventional Commits
 PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+"

@@ -16,6 +16,10 @@ func NewLoggingInterceptor(log lg.Logger) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
+		if info.FullMethod == "/grpc.health.v1.Health/Check" {
+			return handler(ctx, req)
+		}
+
 		start := time.Now()
 		resp, err := handler(ctx, req)
 		duration := time.Since(start)

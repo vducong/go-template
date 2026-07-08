@@ -2,6 +2,10 @@
 
 echo "Running pre-commit check..."
 
+if [ -f .git/MERGE_HEAD ]; then
+    exit 0
+fi
+
 # Run linter
 echo "Running golangci-lint on changes..."
 if ! golangci-lint run --new-from-rev=HEAD; then

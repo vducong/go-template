@@ -3,25 +3,33 @@ package infra
 import (
 	"context"
 	"fmt"
-	cfg "gotemplate/internal/config"
+	"gotemplate/internal/cfg"
+	"gotemplate/pkg/httprespwrit"
 	"gotemplate/pkg/lg"
 	"gotemplate/pkg/mtr"
 	"gotemplate/pkg/trc"
+	"runtime"
 )
 
 type Infrastructure struct {
 	Logger                lg.Logger
 	PrometheusErrorLogger lg.PrometheusErrorLogger
+	ResponseWriter        httprespwrit.Writer
 	Tracing               *trc.TracerProvider
 	Metric                *mtr.MeterProvider
 }
 
 func Setup(configs *cfg.Config) (*Infrastructure, error) {
+	runtime.GOMAXPROCS(configs.App.MaxProcs)
+
+	logger := lg.New(&lg.Config{
+		Level: configs.Log.Level,
+		Mode:  configs.Log.Mode,
+	})
+
 	infra := &Infrastructure{
-		Logger: lg.New(&lg.Config{
-			Level: configs.Log.Level,
-			Mode:  configs.Log.Mode,
-		}),
+		Logger:         logger,
+		ResponseWriter: httprespwrit.NewWriter(lg.NewRespWritLogger(nil, logger)),
 	}
 
 	ctx := context.Background()
@@ -83,5 +91,6 @@ func (i *Infrastructure) Close(ctx context.Context) error {
 		}
 		i.Logger.Info("metric shutdown complete")
 	}
+
 	return nil
 }

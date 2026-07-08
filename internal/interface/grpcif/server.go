@@ -1,19 +1,17 @@
-package grpc
+package grpcif
 
 import (
-	cfg "gotemplate/internal/config"
+	"gotemplate/internal/cfg"
 	"gotemplate/internal/infra"
-	"gotemplate/internal/interface/grpc/interceptor"
-	grpcsvc "gotemplate/internal/interface/grpc/service"
-	intsvc "gotemplate/internal/service"
+	"gotemplate/internal/interface/grpcif/interceptor"
+	grpcsvc "gotemplate/internal/interface/grpcif/service"
 	"gotemplate/pkg/grpcsvr"
 
 	"google.golang.org/grpc"
 )
 
 func New(
-	configs *cfg.GRPCConfig, infrastructure *infra.Infrastructure,
-	internalServices *intsvc.Services, grpcServices *grpcsvc.Services,
+	configs *cfg.GRPCConfig, infrastructure *infra.Infrastructure, grpcServices *grpcsvc.Services,
 ) *grpcsvr.Server {
 	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(

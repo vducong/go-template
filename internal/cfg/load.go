@@ -11,9 +11,9 @@ func Load(path string) (*Config, error) {
 	configs := &Config{}
 	loader := cfld.New(cfld.LoaderTypeCleanenv)
 	if err := loader.Load(path, configs); err != nil {
-		return nil, fmt.Errorf("failed to load server config: %w", err)
+		return nil, fmt.Errorf("load config from %s: %w", path, err)
 	}
-	fmt.Printf("server config loaded: %+v\n", configs)
+	fmt.Printf("config loaded from %s: %+v\n", path, configs)
 
 	return configs, nil
 }

@@ -1,0 +1,8 @@
+{
+  "gotemplate.generic": "something went wrong",
+  "gotemplate.error.internal.server": "internal server error",
+  "gotemplate.invalid.argument": "invalid argument",
+  "gotemplate.invalid.binding": "invalid binding",
+  "gotemplate.error.unauthorized": "unauthorized",
+  "gotemplate.user.not_found": "user not found"
+}

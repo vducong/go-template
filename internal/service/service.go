@@ -1,12 +1,21 @@
 package service
 
-import cfg "gotemplate/internal/config"
+import (
+	"context"
+	"gotemplate/internal/cfg"
+	"gotemplate/internal/infra"
+	"gotemplate/internal/repository"
+)
 
 type Services struct {
 	Config Config
 }
 
-func Setup(configs *cfg.Config) (*Services, error) {
+func Setup(
+	configs *cfg.Config,
+	infrastructure *infra.Infrastructure,
+	repos *repository.Repos,
+) (*Services, error) {
 	configService, err := NewConfigService(configs)
 	if err != nil {
 		return nil, err
@@ -15,4 +24,12 @@ func Setup(configs *cfg.Config) (*Services, error) {
 	return &Services{
 		Config: configService,
 	}, nil
+}
+
+func (s *Services) Stop(ctx context.Context) error {
+	if s == nil {
+		return nil
+	}
+
+	return nil
 }

@@ -2,12 +2,33 @@ app:
   name: gotemplate
   version: 0.1.0
   env: dev
+  service_code: 12
+  message_key_prefix: "gotemplate"
 
 http:
   port: 8080
+  cors:
+    enabled: true
+    allowed_origins:
+      - "http://localhost:3000"
+    allowed_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    allowed_headers: ["Accept", "Authorization", "Content-Type", "X-Request-ID"]
+    exposed_headers: ["X-Request-ID"]
+    allow_credentials: false
+    max_age: 300
+
 
 grpc:
   port: 9091
+
+auth:
+  jwt_secret: "change-me"
+  jwt_leeway: 30s
+  jwt_issuer: "gotemplate"
+  jwt_audience:
+    - "gotemplate-api"
+  api_keys:
+    - "example-api-key"
 
 log:
   level: DEBUG
