@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
@@ -16,13 +17,7 @@ import (
 )
 
 func setupOtel(ctx context.Context, configs *Config) (tracerProvider *TracerProvider, err error) {
-	resources, err := otelres.Merge(
-		otelres.Default(),
-		otelres.NewWithAttributes(
-			"",
-			semconv.ServiceName(configs.ServiceName),
-		),
-	)
+	resources, err := newResource(configs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
@@ -40,6 +35,17 @@ func setupOtel(ctx context.Context, configs *Config) (tracerProvider *TracerProv
 	return &TracerProvider{
 		StopFn: stopFn,
 	}, nil
+}
+
+func newResource(configs *Config) (*otelres.Resource, error) {
+	attrs := []attribute.KeyValue{semconv.ServiceName(configs.ServiceName)}
+	if configs.Environment != "" {
+		attrs = append(attrs, semconv.DeploymentEnvironmentName(configs.Environment))
+	}
+	return otelres.Merge(
+		otelres.Default(),
+		otelres.NewWithAttributes("", attrs...),
+	)
 }
 
 func initExporter(ctx context.Context, configs *Config) (exporter sdktrace.SpanExporter, err error) {

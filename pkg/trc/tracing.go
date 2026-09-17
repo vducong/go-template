@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	ServiceName string
+	Environment string
 	Kind        Kind
 	Exporter    ExporterConfig
 	Provider    ProviderConfig

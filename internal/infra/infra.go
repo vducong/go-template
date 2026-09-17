@@ -37,6 +37,7 @@ func Setup(configs *cfg.Config) (*Infrastructure, error) {
 		tracing, err := trc.Setup(ctx, &trc.Config{
 			Kind:        trc.Kind(configs.Tracing.Kind),
 			ServiceName: configs.Tracing.ServiceName,
+			Environment: string(configs.App.Env),
 			Exporter: trc.ExporterConfig{
 				Kind:     trc.ExporterKind(configs.Tracing.Exporter.Kind),
 				Endpoint: configs.Tracing.Exporter.Endpoint,

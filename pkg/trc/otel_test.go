@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 	otelres "go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -41,6 +42,24 @@ func TestInitTracerProvider_Sampling(t *testing.T) {
 				t.Fatalf("sampled = %v, want %v", got, tt.wantRecorded)
 			}
 		})
+	}
+}
+
+func TestNewResource_EnvironmentTag(t *testing.T) {
+	res, err := newResource(&Config{ServiceName: "svc", Environment: "staging"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := res.Set().Value(semconv.DeploymentEnvironmentNameKey); !ok || got.AsString() != "staging" {
+		t.Fatalf("deployment.environment.name = %q (set %v), want staging", got.AsString(), ok)
+	}
+
+	res, err = newResource(&Config{ServiceName: "svc"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := res.Set().Value(semconv.DeploymentEnvironmentNameKey); ok {
+		t.Fatal("an empty environment must not produce an empty tag")
 	}
 }
 
