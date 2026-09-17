@@ -144,10 +144,16 @@ func (h *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 #### Step D: Mount the Route (`internal/interface/httpif/server.go`)
 
+Add the route inside the `/v1` group, which is nested in `/api`. The `/api` group already applies tracing, request logging and panic recovery, so `/metrics` and `/health` stay out of traces and request logs.
+
 ```go
-r.Route("/api/v1", func(api chi.Router) {
-    api.Use(authenticator.RequireJwt()) // JWT Middleware
-    api.Get("/users/{id}", handlers.User.Get)
+r.Route("/api", func(api chi.Router) {
+    // ... tracing, request logging, recovery
+
+    api.Route("/v1", func(v1 chi.Router) {
+        v1.Use(authenticator.RequireJwt()) // JWT Middleware
+        v1.Get("/users/{id}", handlers.User.Get)
+    })
 })
 ```
 
