@@ -27,6 +27,7 @@ func Setup(ctx context.Context, configs *Config) (*MeterProvider, error) {
 	if configs.Kind == KindPrometheus {
 		promClient := setupProm()
 		return &MeterProvider{
+			StopFn:     func(context.Context) error { return nil },
 			PromClient: promClient,
 		}, nil
 	}
