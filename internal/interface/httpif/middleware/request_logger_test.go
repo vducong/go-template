@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 func TestRequestLogger_OmitsBodiesOnSuccess(t *testing.T) {
@@ -50,6 +52,35 @@ func TestRequestLogger_CapsLoggedBodiesButNotTheRequest(t *testing.T) {
 			t.Errorf("%s logged %d bytes, want %d", key, len(body), requestLogBodyLimit)
 		}
 	}
+}
+
+// An unsampled trace is never exported, so its trace_id would point at a trace that does not exist.
+func TestRequestLogger_TraceIDOnlyForSampledTraces(t *testing.T) {
+	for _, sampled := range []bool{true, false} {
+		logger := &fieldsLogger{Logger: lg.New(&lg.Config{Level: "panic", Mode: "json"})}
+		h := RequestLogger(logger)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/wallet", nil)
+		h.ServeHTTP(httptest.NewRecorder(), req.WithContext(spanContext(sampled)))
+
+		fields := logger.only(t)
+		_, hasTraceID := fields["trace_id"]
+		_, hasSpanID := fields["span_id"]
+		if hasTraceID != sampled || hasSpanID != sampled {
+			t.Errorf("sampled=%v: trace_id logged %v, span_id logged %v", sampled, hasTraceID, hasSpanID)
+		}
+	}
+}
+
+func spanContext(sampled bool) context.Context {
+	var flags trace.TraceFlags
+	if sampled {
+		flags = trace.FlagsSampled
+	}
+	return trace.ContextWithSpanContext(context.Background(), trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID:    trace.TraceID{0x01},
+		SpanID:     trace.SpanID{0x02},
+		TraceFlags: flags,
+	}))
 }
 
 // serve runs one request through RequestLogger and returns what the handler read from the body.

@@ -89,7 +89,8 @@ func requestFields(
 
 func traceFields(ctx context.Context) []lg.Field {
 	span := trace.SpanFromContext(ctx)
-	if !span.SpanContext().IsValid() {
+	// An unsampled trace is never exported, so its trace_id would point at nothing.
+	if !span.SpanContext().IsSampled() {
 		return nil
 	}
 	spanCtx := span.SpanContext()
