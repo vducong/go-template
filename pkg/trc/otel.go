@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
@@ -16,13 +17,7 @@ import (
 )
 
 func setupOtel(ctx context.Context, configs *Config) (tracerProvider *TracerProvider, err error) {
-	resources, err := otelres.Merge(
-		otelres.Default(),
-		otelres.NewWithAttributes(
-			"",
-			semconv.ServiceName(configs.ServiceName),
-		),
-	)
+	resources, err := newResource(configs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
@@ -40,6 +35,17 @@ func setupOtel(ctx context.Context, configs *Config) (tracerProvider *TracerProv
 	return &TracerProvider{
 		StopFn: stopFn,
 	}, nil
+}
+
+func newResource(configs *Config) (*otelres.Resource, error) {
+	attrs := []attribute.KeyValue{semconv.ServiceName(configs.ServiceName)}
+	if configs.Environment != "" {
+		attrs = append(attrs, semconv.DeploymentEnvironmentName(configs.Environment))
+	}
+	return otelres.Merge(
+		otelres.Default(),
+		otelres.NewWithAttributes("", attrs...),
+	)
 }
 
 func initExporter(ctx context.Context, configs *Config) (exporter sdktrace.SpanExporter, err error) {
@@ -85,11 +91,12 @@ func initTracerProvider(
 	var sampler sdktrace.Sampler
 	switch configs.Provider.SamplerKind {
 	case SamplerKindAlways:
-		sampler = sdktrace.AlwaysSample()
+		sampler = parentBased(sdktrace.AlwaysSample())
 	case SamplerKindNever:
+		// Not parentBased: that would still record under a sampled caller, and never must mean off.
 		sampler = sdktrace.NeverSample()
 	case SamplerKindRatio:
-		sampler = sdktrace.TraceIDRatioBased(configs.Provider.SampleRate)
+		sampler = parentBased(sdktrace.TraceIDRatioBased(configs.Provider.SampleRate))
 	default:
 		return nil, fmt.Errorf("invalid sampler kind=%s", configs.Provider.SamplerKind)
 	}
@@ -109,4 +116,11 @@ func initTracerProvider(
 	)
 
 	return tracerProvider.Shutdown, nil
+}
+
+// parentBased records every trace the caller sampled, so it stays whole across services.
+// A caller that did not sample falls back to root instead of switching tracing off,
+// so a caller that samples less than this service cannot cut its traces.
+func parentBased(root sdktrace.Sampler) sdktrace.Sampler {
+	return sdktrace.ParentBased(root, sdktrace.WithRemoteParentNotSampled(root))
 }

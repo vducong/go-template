@@ -30,7 +30,8 @@ func NewLoggingInterceptor(log lg.Logger) grpc.UnaryServerInterceptor {
 			lg.Dur("duration", duration),
 		}
 
-		if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+		// An unsampled trace is never exported, so its trace_id would point at nothing.
+		if span := trace.SpanFromContext(ctx); span.SpanContext().IsSampled() {
 			spanCtx := span.SpanContext()
 			fields = append(fields,
 				lg.Str("trace_id", spanCtx.TraceID().String()),

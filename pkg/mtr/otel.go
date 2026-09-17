@@ -25,7 +25,7 @@ func setupOtel(ctx context.Context, configs *Config) (meterProvider *MeterProvid
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	meterProvider = &MeterProvider{}
+	meterProvider = &MeterProvider{PromClient: setupProm()}
 	readers := []sdkmetric.Reader{}
 	for i := range configs.Readers {
 		reader, errReader := meterProvider.initReader(ctx, configs.Readers[i])
@@ -39,16 +39,13 @@ func setupOtel(ctx context.Context, configs *Config) (meterProvider *MeterProvid
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter provider: %w", err)
 	}
-	return &MeterProvider{
-		StopFn:     stopFn,
-		PromClient: setupProm(),
-	}, nil
+	meterProvider.StopFn = stopFn
+	return meterProvider, nil
 }
 
 func (o *MeterProvider) initReader(ctx context.Context, configs *ReaderConfig) (reader sdkmetric.Reader, err error) {
 	switch configs.ExporterKind {
 	case ExporterKindOtelPrometheus:
-		o.PromClient = setupProm()
 		reader, err = prometheus.New(
 			prometheus.WithRegisterer(o.PromClient.Registry),
 		)

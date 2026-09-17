@@ -13,7 +13,8 @@ func Load(path string) (*Config, error) {
 	if err := loader.Load(path, configs); err != nil {
 		return nil, fmt.Errorf("load config from %s: %w", path, err)
 	}
-	fmt.Printf("config loaded from %s: %+v\n", path, configs)
+	fmt.Printf("config loaded from %s: app=%s version=%s env=%s http_port=%s grpc_port=%s\n",
+		path, configs.App.Name, configs.App.Version, configs.App.Env, configs.HTTP.Port, configs.GRPC.Port)
 
 	return configs, nil
 }
